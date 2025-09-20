@@ -10,10 +10,6 @@ const app = express();
 //?Middle wair
 app.use(cors({ origin: '*' }))
 app.use(bodyParser.json());
-//? setting static folder path
-app.use('/image/products', express.static('public/products'));
-app.use('/image/category', express.static('public/category'));
-app.use('/image/poster', express.static('public/posters'));
 
 const URL = process.env.MONGO_URL;
 mongoose.connect(URL);
@@ -35,7 +31,6 @@ app.use('/orders', require('./routes/order'));
 app.use('/payment', require('./routes/payment'));
 app.use('/notification', require('./routes/notification'));
 
-
 // Example route using asyncHandler directly in app.js
 app.get('/', asyncHandler(async (req, res) => {
     res.json({ success: true, message: 'API working successfully', data: null });
@@ -46,9 +41,6 @@ app.use((error, req, res, next) => {
     res.status(500).json({ success: false, message: error.message, data: null });
 });
 
-
 app.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT}`);
 });
-
-

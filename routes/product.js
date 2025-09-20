@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../model/product');
-const multer = require('multer');
 const { uploadProduct } = require('../uploadFile');
 const asyncHandler = require('express-async-handler');
 
@@ -39,8 +38,6 @@ router.get('/:id', asyncHandler(async (req, res) => {
     }
 }));
 
-
-
 // create new product
 router.post('/', asyncHandler(async (req, res) => {
     try {
@@ -52,17 +49,10 @@ router.post('/', asyncHandler(async (req, res) => {
             { name: 'image4', maxCount: 1 },
             { name: 'image5', maxCount: 1 }
         ])(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                // Handle Multer errors, if any
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    err.message = 'File size is too large. Maximum filesize is 5MB per image.';
-                }
+            if (err) {
+                // Handle errors
                 console.log(`Add product: ${err}`);
-                return res.json({ success: false, message: err.message });
-            } else if (err) {
-                // Handle other errors, if any
-                console.log(`Add product: ${err}`);
-                return res.json({ success: false, message: err });
+                return res.status(400).json({ success: false, message: err.message || "Error uploading files" });
             }
 
             // Extract product data from the request body
@@ -81,13 +71,26 @@ router.post('/', asyncHandler(async (req, res) => {
             fields.forEach((field, index) => {
                 if (req.files[field] && req.files[field].length > 0) {
                     const file = req.files[field][0];
-                    const imageUrl = `https://online-store-api-d8ci.onrender.com/image/products/${file.filename}`;
+                    // With Cloudinary, the URL is in file.path
+                    const imageUrl = file.path;
                     imageUrls.push({ image: index + 1, url: imageUrl });
                 }
             });
 
             // Create a new product object with data
-            const newProduct = new Product({ name, description, quantity, price, offerPrice, proCategoryId, proSubCategoryId, proBrandId,proVariantTypeId, proVariantId, images: imageUrls });
+            const newProduct = new Product({ 
+                name, 
+                description, 
+                quantity, 
+                price, 
+                offerPrice, 
+                proCategoryId, 
+                proSubCategoryId, 
+                proBrandId,
+                proVariantTypeId, 
+                proVariantId, 
+                images: imageUrls 
+            });
 
             // Save the new product to the database
             await newProduct.save();
@@ -101,8 +104,6 @@ router.post('/', asyncHandler(async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 }));
-
-
 
 // Update a product
 router.put('/:id', asyncHandler(async (req, res) => {
@@ -118,7 +119,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
         ])(req, res, async function (err) {
             if (err) {
                 console.log(`Update product: ${err}`);
-                return res.status(500).json({ success: false, message: err.message });
+                return res.status(400).json({ success: false, message: err.message || "Error uploading files" });
             }
 
             const { name, description, quantity, price, offerPrice, proCategoryId, proSubCategoryId, proBrandId, proVariantTypeId, proVariantId } = req.body;
@@ -146,7 +147,8 @@ router.put('/:id', asyncHandler(async (req, res) => {
             fields.forEach((field, index) => {
                 if (req.files[field] && req.files[field].length > 0) {
                     const file = req.files[field][0];
-                    const imageUrl = `https://online-store-api-d8ci.onrender.com/image/products/${file.filename}`;
+                    // With Cloudinary, the URL is in file.path
+                    const imageUrl = file.path;
                     // Update the specific image URL in the images array
                     let imageEntry = productToUpdate.images.find(img => img.image === (index + 1));
                     if (imageEntry) {

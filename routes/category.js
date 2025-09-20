@@ -4,7 +4,6 @@ const Category = require('../model/category');
 const SubCategory = require('../model/subCategory');
 const Product = require('../model/product');
 const { uploadCategory } = require('../uploadFile');
-const multer = require('multer');
 const asyncHandler = require('express-async-handler');
 
 // Get all categories
@@ -35,22 +34,18 @@ router.get('/:id', asyncHandler(async (req, res) => {
 router.post('/', asyncHandler(async (req, res) => {
     try {
         uploadCategory.single('img')(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    err.message = 'File size is too large. Maximum filesize is 5MB.';
-                }
+            if (err) {
                 console.log(`Add category: ${err}`);
-                return res.json({ success: false, message: err });
-            } else if (err) {
-                console.log(`Add category: ${err}`);
-                return res.json({ success: false, message: err });
+                return res.status(400).json({ success: false, message: err.message || "Error uploading file" });
             }
+            
             const { name } = req.body;
             let imageUrl = 'no_url';
+            
+            // With Cloudinary, the URL is in req.file.path
             if (req.file) {
-                imageUrl = `https://online-store-api-d8ci.onrender.com/image/category/${req.file.filename}`;
+                imageUrl = req.file.path;
             }
-            console.log('url ', req.file)
 
             if (!name) {
                 return res.status(400).json({ success: false, message: "Name is required." });
@@ -67,9 +62,7 @@ router.post('/', asyncHandler(async (req, res) => {
                 console.error("Error creating category:", error);
                 res.status(500).json({ success: false, message: error.message });
             }
-
         });
-
     } catch (err) {
         console.log(`Error creating category: ${err.message}`);
         return res.status(500).json({ success: false, message: err.message });
@@ -81,26 +74,21 @@ router.put('/:id', asyncHandler(async (req, res) => {
     try {
         const categoryID = req.params.id;
         uploadCategory.single('img')(req, res, async function (err) {
-            if (err instanceof multer.MulterError) {
-                if (err.code === 'LIMIT_FILE_SIZE') {
-                    err.message = 'File size is too large. Maximum filesize is 5MB.';
-                }
+            if (err) {
                 console.log(`Update category: ${err.message}`);
-                return res.json({ success: false, message: err.message });
-            } else if (err) {
-                console.log(`Update category: ${err.message}`);
-                return res.json({ success: false, message: err.message });
+                return res.status(400).json({ success: false, message: err.message || "Error uploading file" });
             }
 
             const { name } = req.body;
             let image = req.body.image;
 
+            // With Cloudinary, the URL is in req.file.path
             if (req.file) {
-                image = `https://online-store-api-d8ci.onrender.com/image/category/${req.file.filename}`;
+                image = req.file.path;
             }
 
-            if (!name || !image) {
-                return res.status(400).json({ success: false, message: "Name and image are required." });
+            if (!name) {
+                return res.status(400).json({ success: false, message: "Name is required." });
             }
 
             try {
@@ -112,9 +100,7 @@ router.put('/:id', asyncHandler(async (req, res) => {
             } catch (error) {
                 res.status(500).json({ success: false, message: error.message });
             }
-
         });
-
     } catch (err) {
         console.log(`Error updating category: ${err.message}`);
         return res.status(500).json({ success: false, message: err.message });
@@ -148,10 +134,5 @@ router.delete('/:id', asyncHandler(async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 }));
-
-
-
-
-
 
 module.exports = router;
